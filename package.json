@@ -1,0 +1,29 @@
+{
+  "name": "pentaho-visualizer",
+  "version": "1.0.0",
+  "description": "Web application for visualizing Pentaho KTR and KTJ files",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
+  },
+  "keywords": [
+    "pentaho",
+    "ktr",
+    "ktj",
+    "visualization",
+    "workflow"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "dependencies": {
+    "@types/xml2js": "^0.4.14",
+    "xml2js": "^0.6.2"
+  }
+}
