@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PentahoWorkflow, WorkflowSummary } from '../types';
 import { aiService, PySparkConversion } from '../services/aiService';
+import { MigrationProjectService } from '../services/migrationProjectService';
 import { 
   FileText, 
   Code,
@@ -25,6 +26,7 @@ import {
 
 interface WorkflowTabsPanelProps {
   workflow: PentahoWorkflow;
+  projectId?: string; // Optional project to link conversions to
   onSummaryGenerated?: (summary: WorkflowSummary) => void;
   onClose?: () => void;
 }
@@ -33,6 +35,7 @@ type TabType = 'summary' | 'pyspark';
 
 export const WorkflowTabsPanel: React.FC<WorkflowTabsPanelProps> = ({ 
   workflow, 
+  projectId,
   onSummaryGenerated,
   onClose 
 }) => {
@@ -56,6 +59,9 @@ export const WorkflowTabsPanel: React.FC<WorkflowTabsPanelProps> = ({
   // Scroll state
   const [isScrollable, setIsScrollable] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Services
+  const migrationService = new MigrationProjectService();
 
   useEffect(() => {
     const checkAIStatus = async () => {
@@ -64,6 +70,44 @@ export const WorkflowTabsPanel: React.FC<WorkflowTabsPanelProps> = ({
     };
     checkAIStatus();
   }, []);
+
+  // Check for existing conversion and summary on mount
+  useEffect(() => {
+    if (projectId && workflow?.name) {
+      console.log(`🔍 Checking for existing conversion/summary for workflow: ${workflow.name}`);
+      checkExistingData();
+    }
+  }, [projectId, workflow?.name]);
+
+  const checkExistingData = async () => {
+    if (!projectId || !workflow?.name) return;
+
+    try {
+      // Check for existing PySpark conversion
+      const existingConversion = await migrationService.getExistingConversion(projectId, workflow.name);
+      if (existingConversion && existingConversion.conversion_status === 'completed') {
+        console.log(`✅ Found existing PySpark conversion for: ${workflow.name}`);
+        setPySparkConversion({
+          success: true,
+          pysparkCode: existingConversion.generated_code || '',
+          originalWorkflow: workflow.name,
+          conversionNotes: existingConversion.conversion_notes || [],
+          estimatedComplexity: existingConversion.estimated_complexity || 'Medium',
+          requiredLibraries: existingConversion.required_libraries || [],
+          databricksNotebook: existingConversion.generated_notebook || null
+        });
+      }
+
+      // Check if workflow already has a summary
+      if (workflow.workflowSummary) {
+        console.log(`✅ Found existing workflow summary for: ${workflow.name}`);
+        setSummary(workflow.workflowSummary);
+      }
+    } catch (error) {
+      console.error('Error checking existing data:', error);
+      // Don't show error to user - just proceed without existing data
+    }
+  };
 
   useEffect(() => {
     // Reset summary when workflow changes
@@ -86,18 +130,31 @@ export const WorkflowTabsPanel: React.FC<WorkflowTabsPanelProps> = ({
 
   // Summary functions
   const generateSummary = async () => {
+    // Check if summary already exists
+    if (summary) {
+      console.log(`ℹ️ Summary already exists for workflow: ${workflow.name}`);
+      return;
+    }
+
     setSummaryLoading(true);
     setSummaryError(null);
     
     try {
+      console.log(`🧠 Generating new summary for workflow: ${workflow.name}`);
       const generatedSummary = await aiService.generateWorkflowSummary(workflow);
       if (generatedSummary) {
         setSummary(generatedSummary);
         onSummaryGenerated?.(generatedSummary);
+
+        // Save summary to database if we have project context
+        // Note: Summary persistence would require workflow to have fileId - this is a limitation
+        // For full persistence, we'd need to pass the fileId as a prop from ProjectFileBrowser
+        console.log(`✅ Summary generated for workflow: ${workflow.name}`);
       } else {
         setSummaryError('Failed to generate workflow summary');
       }
     } catch (err) {
+      console.error('Error generating summary:', err);
       setSummaryError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setSummaryLoading(false);
@@ -106,17 +163,57 @@ export const WorkflowTabsPanel: React.FC<WorkflowTabsPanelProps> = ({
 
   // PySpark functions
   const convertToPySpark = async () => {
+    // Check if conversion already exists
+    if (pySparkConversion) {
+      console.log(`ℹ️ PySpark conversion already exists for workflow: ${workflow.name}`);
+      return;
+    }
+
     setPySparkLoading(true);
     setPySparkError(null);
     
     try {
-      const conversion = await aiService.convertToPySpark(workflow);
+      console.log(`🔧 Starting new PySpark conversion for workflow: ${workflow.name}`);
+      let conversion: PySparkConversion | null = null;
+      
+      if (projectId) {
+        // Convert through project API to link to migration project
+        console.log(`🔄 Converting workflow through project ${projectId}: ${workflow.name}`);
+        const response = await migrationService.convertWorkflow(
+          projectId,
+          workflow,
+          `${workflow.name}.${workflow.type === 'transformation' ? 'ktr' : 'kjb'}`,
+          JSON.stringify(workflow).length,
+          new Date().toISOString()
+        );
+        
+        if (response.conversion && response.conversion.generated_code) {
+          conversion = {
+            success: true,
+            pysparkCode: response.conversion.generated_code,
+            originalWorkflow: workflow.name,
+            conversionNotes: response.conversion.conversion_notes || [],
+            estimatedComplexity: response.conversion.estimated_complexity || 'Medium',
+            requiredLibraries: response.conversion.required_libraries || [],
+            databricksNotebook: response.conversion.generated_notebook || null
+          };
+          console.log(`✅ Workflow converted through project: ${response.conversion.id}`);
+        } else {
+          throw new Error('Failed to convert through project API - no generated code received');
+        }
+      } else {
+        // Convert directly without project linking
+        console.log(`🔄 Converting workflow directly: ${workflow.name}`);
+        conversion = await aiService.convertToPySpark(workflow);
+      }
+      
       if (conversion) {
         setPySparkConversion(conversion);
       } else {
         setPySparkError('Failed to convert to PySpark');
       }
     } catch (err) {
+      console.error('Conversion error:', err);
       setPySparkError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setPySparkLoading(false);

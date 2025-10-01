@@ -11,6 +11,9 @@ A modern web application for reading and visualizing Pentaho KTR (transformation
 - 👁 **Drill-Down Navigation**: Navigate from folder view to individual file workflows
 - 🎯 **Smart Parsing**: Robust extraction of steps, jobs, hops (connections), database connections, and file references - handles all Pentaho file structure variations with automatic fallback to inferred connections
 - 🤖 **AI-Powered Summaries**: Generate intelligent summaries of step functionality using LLM analysis - explains what each step does, its inputs/outputs, and key configuration in plain English
+- 🐍 **PySpark Conversion**: Convert Pentaho workflows to PySpark code with downloadable Databricks notebooks
+- 📋 **Migration Projects**: Manage large-scale migration projects with PostgreSQL persistence and progress tracking
+- 🏢 **Databricks Integration**: Seamless integration with Databricks Lakebase for project and artifact management
 - 🔗 **Dependency Analysis**: Identifies how transformations and jobs reference each other
 - 🌐 **Modern UI**: Clean, responsive interface built with React and Tailwind CSS
 - ⚡ **Real-time**: Fast parsing and visualization with TypeScript throughout
@@ -316,6 +319,86 @@ cd server && npm run build
 cd server && npm start
 ```
 
+## Migration Projects
+
+### Overview
+The Migration Projects feature provides enterprise-level project management for large-scale Pentaho-to-PySpark migrations. Projects are stored in PostgreSQL and optionally integrated with Databricks Lakebase for artifact management.
+
+### Setup Database (Optional)
+Migration projects require PostgreSQL. If not configured, the application will run in visualization-only mode.
+
+#### PostgreSQL Setup
+1. **Install PostgreSQL**:
+   ```bash
+   # macOS with Homebrew
+   brew install postgresql
+   brew services start postgresql
+   
+   # Ubuntu/Debian
+   sudo apt install postgresql postgresql-contrib
+   sudo systemctl start postgresql
+   
+   # Windows - Download from postgresql.org
+   ```
+
+2. **Create Database**:
+   ```sql
+   createdb pentaho_migration
+   ```
+
+3. **Configure Environment**:
+   Add to `server/.env`:
+   ```env
+   # PostgreSQL Database Configuration
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=pentaho_migration
+   DB_USER=postgres
+   DB_PASSWORD=your_password_here
+   DB_POOL_MAX=10
+   DB_IDLE_TIMEOUT=30000
+   DB_CONNECTION_TIMEOUT=2000
+   ```
+
+#### Databricks Integration (Optional)
+For Lakebase integration, add to `server/.env`:
+```env
+# Databricks Workspace Configuration
+DATABRICKS_WORKSPACE_URL=https://your-workspace.databricks.net
+```
+
+### Using Migration Projects
+
+1. **Navigate to Projects Tab**: Click the "Projects" tab in the top navigation
+
+2. **Create a Project**:
+   - Click "New Project"
+   - Fill in project details
+   - Optionally configure Databricks integration
+   - Save the project
+
+3. **Project Dashboard**: 
+   - View conversion progress and statistics
+   - Monitor completed, failed, and pending conversions
+   - See complexity distribution and performance metrics
+   - Access recent conversion history
+
+4. **Convert Workflows**:
+   - From the project dashboard, click "Convert Workflow"
+   - Upload Pentaho files through the Visualizer
+   - Conversions are automatically linked to the project
+   - Generated PySpark code is stored and tracked
+
+### Project Features
+
+- **Progress Tracking**: Real-time conversion statistics and progress bars
+- **State Persistence**: Projects and conversions survive server restarts
+- **Complexity Analysis**: Automatic complexity assessment (Low/Medium/High)
+- **Performance Metrics**: Processing time tracking and optimization insights
+- **Error Handling**: Failed conversions with detailed error messages and retry capability
+- **Databricks Integration**: Automatic notebook creation in Databricks workspace
+- **Search & Filter**: Find projects by name, status, or other criteria
+
 ## Troubleshooting
 
 **File upload fails**: Check that files have `.ktr` or `.ktj` extensions and are valid Pentaho files.
@@ -325,6 +408,10 @@ cd server && npm start
 **Parsing errors**: Check the browser console and server logs for detailed error messages.
 
 **CORS issues**: The Vite dev server proxies API calls to avoid CORS issues in development.
+
+**Database connection fails**: Check PostgreSQL is running and credentials in `server/.env` are correct. The app runs without database but migration projects will be disabled.
+
+**Migration projects not available**: Ensure PostgreSQL is configured and the server shows "Database: Connected" on startup.
 
 ## Contributing
 

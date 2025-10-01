@@ -67,6 +67,11 @@ export interface PentahoWorkflow {
     author?: string;
   };
   workflowSummary?: WorkflowSummary;
+  
+  // File dependencies (optional, for project file context)
+  references?: FileReference[];
+  referencedBy?: FileReference[];
+  dependencies?: any[]; // External dependencies (databases, files, etc.)
 }
 
 export interface ParseResult {

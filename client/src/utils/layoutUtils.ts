@@ -88,8 +88,51 @@ function createSimpleGridLayout(folderWorkflow: FolderWorkflow): LayoutResult {
     });
   });
   
-  // TODO: Add logic to detect file dependencies and create edges
-  // For now, we'll analyze the file names and step properties to infer relationships
+  // Create edges from dependencies if they exist
+  if (folderWorkflow.dependencies && folderWorkflow.dependencies.length > 0) {
+    console.log(`🔗 Creating ${folderWorkflow.dependencies.length} edges from dependencies`);
+    
+    folderWorkflow.dependencies.forEach((dependency: any) => {
+      const sourceExists = nodes.find(n => n.id === dependency.from);
+      const targetExists = nodes.find(n => n.id === dependency.to);
+      
+      if (sourceExists && targetExists) {
+        edges.push({
+          id: dependency.id,
+          source: dependency.from,
+          target: dependency.to,
+          sourceHandle: null, // Let React Flow choose the best source handle
+          targetHandle: null, // Let React Flow choose the best target handle
+          type: 'smoothstep',
+          style: { 
+            strokeWidth: 2,
+            strokeOpacity: 0.8,
+            stroke: getDependencyColor(dependency.type)
+          },
+          markerEnd: {
+            type: 'arrowclosed',
+            width: 12,
+            height: 12,
+            color: getDependencyColor(dependency.type)
+          },
+          label: dependency.type,
+          labelStyle: { 
+            fontSize: '10px', 
+            fill: '#666',
+            fontWeight: 500,
+            background: 'rgba(255, 255, 255, 0.8)',
+            padding: '2px 4px',
+            borderRadius: '4px'
+          },
+          labelBgPadding: [4, 2],
+          labelBgBorderRadius: 4,
+          labelBgStyle: { fill: 'rgba(255, 255, 255, 0.9)', fillOpacity: 0.9 }
+        });
+      }
+    });
+  } else {
+    console.log('🔗 No dependencies found for edges');
+  }
   
   return { nodes, edges };
 }
@@ -221,13 +264,14 @@ export function createHierarchicalLayout(folderWorkflow: FolderWorkflow): Layout
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   
-  // Set graph properties for hierarchical (Sankey-like) layout
+  // Set graph properties for hierarchical (Sankey-like) layout optimized for side connections
   dagreGraph.setGraph({ 
-    rankdir: 'LR', 
-    ranksep: 120, 
-    nodesep: 60,
-    marginx: 30,
-    marginy: 30
+    rankdir: 'LR',        // Left to Right layout for side connections
+    ranksep: 180,         // More horizontal space between ranks for better edge visibility
+    nodesep: 80,          // More vertical space between nodes
+    marginx: 40,          // More margin for handle visibility
+    marginy: 40,
+    align: 'UL'           // Align nodes to upper-left for consistent positioning
   });
 
   // Add file nodes to dagre graph
@@ -271,21 +315,23 @@ export function createHierarchicalLayout(folderWorkflow: FolderWorkflow): Layout
     };
   });
 
-  // Convert to React Flow edges with elegant styling
+  // Convert to React Flow edges with elegant styling optimized for side connections
   const edges: Edge[] = folderWorkflow.dependencies.map((dependency: FileDependency) => {
     return {
       id: dependency.id,
       source: dependency.from,
       target: dependency.to,
+      sourceHandle: null, // Let React Flow automatically choose the best handle (right side)
+      targetHandle: null, // Let React Flow automatically choose the best handle (left side)
       type: 'smoothstep',
       animated: false,
       style: {
         stroke: getDependencyColor(dependency.type),
-        strokeWidth: 1.5,          // Elegant, refined thickness
-        strokeOpacity: 0.8,        // Subtle transparency
+        strokeWidth: 2,          // Slightly thicker for better visibility
+        strokeOpacity: 0.8,      // Subtle transparency
         strokeLinecap: 'round',
       },
-      markerEnd: {                 // Elegant arrow markers
+      markerEnd: {               // Elegant arrow markers
         type: 'arrowclosed',
         width: 12,
         height: 12,
@@ -294,16 +340,17 @@ export function createHierarchicalLayout(folderWorkflow: FolderWorkflow): Layout
       label: dependency.type,
       labelStyle: { 
         fontSize: 10, 
-        fontWeight: 400,
-        fill: '#6b7280',
+        fontWeight: 500,         // Slightly bolder for better readability
+        fill: '#4b5563',         // Darker gray for better contrast
         fontFamily: 'system-ui, sans-serif'
       },
       labelBgStyle: {
         fill: '#ffffff',
-        fillOpacity: 0.9,
-        rx: 3,
-        ry: 3
+        fillOpacity: 0.95,       // More opaque for better label readability
+        rx: 4,                   // Slightly more rounded
+        ry: 4
       },
+      labelBgPadding: [6, 3],    // Better padding for labels
     };
   });
 
@@ -416,6 +463,14 @@ function getDependencyColor(type: string): string {
       return '#059669'; // Green for includes
     case 'executes':
       return '#dc2626'; // Clean red for executes
+    case 'file_reference':
+      return '#f59e0b'; // Orange for file references
+    case 'orchestration':
+      return '#8b5cf6'; // Purple for orchestration
+    case 'flow':
+      return '#06b6d4'; // Cyan for data flow
+    case 'sequential':
+      return '#10b981'; // Emerald for sequential processing
     default:
       return '#6b7280'; // Sophisticated gray for unknown
   }

@@ -13,7 +13,10 @@
     "cors": "^2.8.5",
     "multer": "^1.4.5-lts.1",
     "xml2js": "^0.6.2",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
+    "uuid": "^9.0.1",
+    "@databricks/sql": "^1.5.3"
   },
   "devDependencies": {
     "@types/express": "^4.17.17",
@@ -21,6 +24,8 @@
     "@types/multer": "^1.4.7",
     "@types/xml2js": "^0.4.14",
     "@types/node": "^20.0.0",
+    "@types/pg": "^8.10.7",
+    "@types/uuid": "^9.0.6",
     "typescript": "^5.0.0",
     "ts-node-dev": "^2.0.0"
   }

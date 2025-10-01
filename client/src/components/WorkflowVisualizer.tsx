@@ -17,13 +17,14 @@ import { createWorkflowLayout, analyzeWorkflowStructure } from '../utils/layoutU
 
 interface WorkflowVisualizerProps {
   workflow: PentahoWorkflow;
+  projectId?: string;
 }
 
 const nodeTypes = {
   pentaho: PentahoNode,
 };
 
-const WorkflowVisualizer: React.FC<WorkflowVisualizerProps> = ({ workflow }) => {
+const WorkflowVisualizer: React.FC<WorkflowVisualizerProps> = ({ workflow, projectId }) => {
   const [selectedNode, setSelectedNode] = useState<PentahoNodeType | null>(null);
   const [showWorkflowTabs, setShowWorkflowTabs] = useState(false);
   const [showMiniMap, setShowMiniMap] = useState(true);
@@ -125,6 +126,7 @@ const WorkflowVisualizer: React.FC<WorkflowVisualizerProps> = ({ workflow }) => 
       {showWorkflowTabs && (
         <WorkflowTabsPanel
           workflow={workflow}
+          projectId={projectId}
           onSummaryGenerated={(summary) => {
             console.log('Workflow summary generated:', summary);
           }}

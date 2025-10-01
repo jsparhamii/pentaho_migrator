@@ -59,7 +59,13 @@ const FolderNode: React.FC<NodeProps<FolderNodeData>> = ({ data, selected }) => 
       }`}
       onClick={handleClick}
     >
-      <Handle type="target" position={Position.Top} className="w-3 h-3" />
+      {/* Input connectors on the left */}
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        className="w-3 h-3 bg-blue-500 border-2 border-white" 
+        style={{ left: -6 }}
+      />
       
       {/* File Header */}
       <div className="flex items-center justify-between mb-1">
@@ -103,12 +109,18 @@ const FolderNode: React.FC<NodeProps<FolderNodeData>> = ({ data, selected }) => 
         )}
       </div>
 
+      {/* Output connectors on the right */}
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        className="w-3 h-3 bg-green-500 border-2 border-white" 
+        style={{ right: -6 }}
+      />
+
       {/* Hover tooltip */}
       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
         Click for details • 👁 to view workflow
       </div>
-      
-      <Handle type="source" position={Position.Bottom} className="w-3 h-3" />
     </div>
   );
 };
