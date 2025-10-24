@@ -22,8 +22,8 @@ export class DatabaseService {
       connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000'),
       // SSL configuration for Databricks PostgreSQL
       ssl: process.env.DB_SSL_MODE === 'require' ? { rejectUnauthorized: false } : false,
-      // Set default schema to migration_app
-      options: '-c search_path=migration_app,public',
+      // Set default schema to migration_app (disabled for Neon/pooled connections)
+      // options: '-c search_path=migration_app,public',
     };
 
     this.pool = new Pool(config);
@@ -61,8 +61,8 @@ export class DatabaseService {
         console.warn('⚠️ Could not create migration_app schema, it may already exist');
       }
       
-      // Set search path for this session
-      await this.pool.query('SET search_path TO migration_app, public');
+      // Set search path for this session (disabled for Neon/pooled connections)
+      // await this.pool.query('SET search_path TO migration_app, public');
       
       // Check if tables already exist in migration_app schema
       const checkTablesQuery = `
@@ -120,8 +120,8 @@ export class DatabaseService {
     const client = await this.pool.connect();
     
     try {
-      // Ensure we're using the migration_app schema for this query
-      await client.query('SET search_path TO migration_app, public');
+      // Ensure we're using the migration_app schema for this query (disabled for Neon/pooled connections)
+      // await client.query('SET search_path TO migration_app, public');
       
       const result = await client.query(text, params);
       const duration = Date.now() - start;
@@ -151,7 +151,7 @@ export class DatabaseService {
   public async transaction<T>(callback: (client: any) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
     try {
-      await client.query('SET search_path TO migration_app, public');
+      // await client.query('SET search_path TO migration_app, public');
       await client.query('BEGIN');
       const result = await callback(client);
       await client.query('COMMIT');
@@ -169,7 +169,7 @@ export class DatabaseService {
    */
   public async getClient() {
     const client = await this.pool.connect();
-    await client.query('SET search_path TO migration_app, public');
+    // await client.query('SET search_path TO migration_app, public');
     return client;
   }
 

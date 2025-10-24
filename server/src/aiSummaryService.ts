@@ -25,8 +25,13 @@ export class AISummaryService {
 
   constructor() {
     this.apiKey = process.env.DATABRICKS_TOKEN || process.env.OPENAI_API_KEY;
-    this.baseUrl = process.env.AI_BASE_URL || 'https://adb-984752964297111.11.azuredatabricks.net/serving-endpoints/databricks-claude-opus-4-1/invocations';
     this.model = process.env.AI_MODEL || 'databricks-claude-opus-4-1';
+    
+    // Construct full URL: baseUrl + model + /invocations
+    const baseUrl = process.env.AI_BASE_URL || 'https://adb-984752964297111.11.azuredatabricks.net/serving-endpoints/';
+    this.baseUrl = baseUrl.endsWith('/') 
+      ? `${baseUrl}${this.model}/invocations`
+      : `${baseUrl}/${this.model}/invocations`;
   }
 
   /**
@@ -94,17 +99,27 @@ export class AISummaryService {
       description: step.description || 'No description available'
     };
 
-    return `You are an expert Pentaho ETL analyst. Analyze this Pentaho step configuration and provide a detailed, insightful summary.
+    return `You are an expert Pentaho Data Integration (PDI/Kettle) analyst. This is a raw XML export from a Pentaho transformation/job file.
 
-STEP DETAILS:
+The data below is the ACTUAL Pentaho XML structure parsed into JSON. Each property contains the original XML values as arrays (Pentaho XML format).
+
+PENTAHO STEP CONFIGURATION (from XML):
 Name: ${stepInfo.name}
 Type: ${stepInfo.type}
 Description: ${stepInfo.description}
 
-FULL CONFIGURATION DATA:
+RAW PENTAHO XML DATA (as JSON):
 ${JSON.stringify(stepInfo.properties, null, 2)}
 
-Based on this complete configuration, please analyze:
+IMPORTANT PENTAHO XML NOTES:
+- All XML values are in arrays (e.g., "name": ["value"])
+- Look for specific Pentaho fields like: connection, sql, filename, tablename, fields, schema, etc.
+- Database steps will have "connection" and may have "sql" or "table" fields
+- File input/output steps will have "filename", "directory", or "file" fields
+- Transform steps will have "fields" arrays defining column transformations
+- Script steps will have "script" or "jsScripts" containing code
+
+Based on this Pentaho XML configuration, please analyze:
 
 1. What this step specifically does (be detailed about the actual function)
 2. What data/files it processes as input
@@ -192,7 +207,7 @@ Provide a comprehensive analysis in JSON format (no markdown formatting):
           messages: [
             {
               role: 'system',
-              content: 'You are an expert in Pentaho ETL processes. Analyze step configurations and provide clear, concise summaries. Always respond with valid JSON.'
+              content: 'You are an expert Pentaho Data Integration (PDI/Kettle) analyst with deep knowledge of Pentaho XML formats, step types, and ETL patterns. You understand that Pentaho XML stores all values as arrays. Analyze configurations by reading the actual XML structure and provide detailed, technical summaries. Always respond with valid JSON only (no markdown formatting).'
             },
             {
               role: 'user',
@@ -412,19 +427,30 @@ Provide a comprehensive analysis in JSON format (no markdown formatting):
       parameters: workflow.parameters || {}
     };
 
-    return `You are an expert Pentaho ETL analyst. Analyze this complete workflow and provide a comprehensive business and technical summary.
+    return `You are an expert Pentaho Data Integration (PDI/Kettle) analyst. This is a complete Pentaho ${workflow.type} workflow with raw XML data parsed into JSON.
 
-WORKFLOW DETAILS:
+IMPORTANT: The data below comes from Pentaho XML where all values are stored as arrays (e.g., "name": ["value"]). Extract values from arrays when analyzing.
+
+PENTAHO WORKFLOW CONFIGURATION:
 Name: ${workflowInfo.name}
 Type: ${workflowInfo.type}
 Description: ${workflowInfo.description}
-Nodes: ${workflowInfo.nodeCount}
-Connections: ${workflowInfo.connectionCount}
+Total Steps/Entries: ${workflowInfo.nodeCount}
+Connections/Hops: ${workflowInfo.connectionCount}
 
-FULL WORKFLOW STRUCTURE:
+COMPLETE WORKFLOW STRUCTURE (from XML):
 ${JSON.stringify(workflowInfo, null, 2)}
 
-Please analyze this workflow and provide:
+PENTAHO-SPECIFIC ANALYSIS GUIDELINES:
+- Look for database operations: check "connection", "sql", "table", "schema" fields
+- Look for file operations: check "filename", "directory", "file" fields  
+- Look for transformations: check "fields" arrays with field definitions
+- Look for scripts: check "script", "jsScripts", or "execute" fields
+- Understand data flow through connections/hops between steps
+- Identify which steps are inputs (TableInput, TextFileInput, ExcelInput, etc.)
+- Identify which steps are outputs (TableOutput, TextFileOutput, etc.)
+
+Please analyze this Pentaho workflow and provide:
 
 1. OVERALL PURPOSE: What business problem does this workflow solve?
 2. DATA FLOW: Describe the high-level data flow from inputs to outputs

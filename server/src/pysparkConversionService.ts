@@ -64,8 +64,13 @@ export class PySparkConversionService {
 
   constructor() {
     this.apiKey = process.env.DATABRICKS_TOKEN || process.env.OPENAI_API_KEY;
-    this.baseUrl = process.env.AI_BASE_URL || 'https://adb-984752964297111.11.azuredatabricks.net/serving-endpoints/databricks-claude-opus-4-1/invocations';
     this.model = process.env.AI_MODEL || 'databricks-claude-opus-4-1';
+    
+    // Construct full URL: baseUrl + model + /invocations
+    const baseUrl = process.env.AI_BASE_URL || 'https://adb-984752964297111.11.azuredatabricks.net/serving-endpoints/';
+    this.baseUrl = baseUrl.endsWith('/') 
+      ? `${baseUrl}${this.model}/invocations`
+      : `${baseUrl}/${this.model}/invocations`;
   }
 
   /**
